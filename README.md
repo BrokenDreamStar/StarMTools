@@ -132,4 +132,4 @@ plugins/StarMTools/starmtools.db
 
 ## 许可证
 
-暂未指定开源许可证，版权所有。
+[MIT](LICENSE) © [BrokenDream_Star](https://github.com/BrokenDreamStar)
