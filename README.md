@@ -129,7 +129,3 @@ plugins/StarMTools/starmtools.db
 - SQLite (sqlite-jdbc)
 - Gradle + [run-paper](https://github.com/jpenilla/run-paper) 本地测试
 - Java 25
-
-## 许可证
-
-[MIT](LICENSE) © [BrokenDream_Star](https://github.com/BrokenDreamStar)
