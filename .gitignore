@@ -7,7 +7,6 @@
 # Gradle
 .gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 
 # Local test server (Paper run directory)
 run/
@@ -15,6 +14,7 @@ run/
 # Java / Kotlin
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.log
 
 # Local config
