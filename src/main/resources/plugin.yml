@@ -1,0 +1,28 @@
+name: StarMTools
+version: '${version}'
+
+main: team.starm.StarMTools
+authors: [BrokenDream_Star, DeepSeek]
+website: "https://starm.team/"
+api-version: '26.1.2'
+load: POSTWORLD
+softdepend: [PlaceholderAPI]
+
+commands:
+  starmtools:
+    description: "StarMTools main command"
+    usage: "/starmtools reload"
+  fly:
+    description: "Toggle flight mode"
+    usage: "/fly"
+  serverinfo:
+    description: "View server system information"
+    usage: "/serverinfo"
+
+permissions:
+  starmtool.fly:
+    description: "Allows use of /fly command"
+    default: op
+  starmtool.serverinfo:
+    description: "Allows use of /serverinfo command"
+    default: op

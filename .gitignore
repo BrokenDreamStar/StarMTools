@@ -1,0 +1,21 @@
+# OS / editor
+.DS_Store
+*.iml
+.idea/
+.vscode/
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local test server (Paper run directory)
+run/
+
+# Java / Kotlin
+*.class
+*.jar
+*.log
+
+# Local config
+local.properties

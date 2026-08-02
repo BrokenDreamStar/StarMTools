@@ -1,0 +1,53 @@
+# StarMTools - 右键物品执行命令配置
+# 当玩家右键持有匹配的物品时，将执行配置的命令
+#
+# 材质列表: https://jd.papermc.io/paper/26.1.2/org/bukkit/Material.html
+right-click-items:
+  DIAMOND: "say hello"
+
+# 右键触发冷却时间（毫秒），每个玩家独立计算
+# 设为 0 禁用冷却
+cooldown-millis: 1000
+
+# 玩家首次进入服务器时执行的命令
+# %player% 会被替换为玩家名（需要 PlaceholderAPI）
+# 设为 "" 禁用
+# 格式：
+#   "command"                           - 由玩家执行（默认）
+#   "server command"                    - 由控制台执行（加 server 前缀）
+#   "player command"                    - 由玩家执行（加 player 前缀）
+first-join-command: ""
+
+# 飞行功能设置
+fly:
+  # 玩家切换世界时是否恢复飞行状态
+  restore-on-world-change: true
+  # 玩家死亡重生后是否恢复飞行状态
+  restore-on-respawn: true
+  # 切换世界/重生后延迟多久恢复飞行（单位：tick，20tick = 1秒）
+  restore-delay-ticks: 6
+
+# /plugins（及别名 /pl）命令显示设置
+# 替换服务器默认的插件列表输出，按自定义分组显示
+plugins-display:
+  # 是否启用
+  enabled: true
+  # 查看所需的权限（留空 "" 表示任何人都可以查看）
+  # 默认与原版 /plugins 一致：仅 OP 可用
+  permission: "bukkit.command.plugins"
+  # 插件名称按状态着色（启用=绿色，禁用=红色）
+  color-by-status: true
+  # 自定义分组。键为分组名（将原样作为分组标题显示，支持 & 颜色代码），值为该分组包含的插件列表
+  # 不属于任何分组的已加载插件会显示在"其它"中
+  groups:
+    "由xxx制作的为":
+      - StarMTools
+    "由yyy制作的为":
+      - PlaceholderAPI
+  # 显示文本（支持 & 颜色代码）。占位符：{count} 插件数量
+  messages:
+    header: "&a服务器当前加载了 &e{count} &a个插件"
+    among: "&a其中"
+    others-line: "&a其它:"
+    no-permission: "&c你没有权限执行此命令。"
+
