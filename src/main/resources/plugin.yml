@@ -18,6 +18,12 @@ commands:
   serverinfo:
     description: "View server system information"
     usage: "/serverinfo"
+  tpa:
+    description: "Request to teleport to a player"
+    usage: "/tpa <player>"
+  tpahere:
+    description: "Request a player to teleport to you"
+    usage: "/tpahere <player>"
 
 permissions:
   starmtool.fly:
@@ -26,3 +32,9 @@ permissions:
   starmtool.serverinfo:
     description: "Allows use of /serverinfo command"
     default: op
+  starmtool.tpa:
+    description: "Allows use of /tpa command"
+    default: true
+  starmtool.tpahere:
+    description: "Allows use of /tpahere command"
+    default: true

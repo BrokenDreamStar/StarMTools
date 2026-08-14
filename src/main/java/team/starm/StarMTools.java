@@ -29,6 +29,8 @@ public final class StarMTools extends JavaPlugin {
         getCommand("starmtools").setExecutor(new CommandHandler(this));
         getCommand("fly").setExecutor(new FlyCommand(this, databaseManager));
         getCommand("serverinfo").setExecutor(new ServerInfoCommand(this));
+        getCommand("tpa").setExecutor(new TpaCommand(this, teleportManager));
+        getCommand("tpahere").setExecutor(new TpaHereCommand(this, teleportManager));
 
         rightClickListener = new RightClickListener(this);
         getServer().getPluginManager().registerEvents(rightClickListener, this);
