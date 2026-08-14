@@ -23,6 +23,9 @@ public final class StarMTools extends JavaPlugin {
         databaseManager = new DatabaseManager(this);
         databaseManager.init();
 
+        TeleportManager teleportManager = new TeleportManager(this, databaseManager);
+        getServer().getPluginManager().registerEvents(teleportManager, this);
+
         getCommand("starmtools").setExecutor(new CommandHandler(this));
         getCommand("fly").setExecutor(new FlyCommand(this, databaseManager));
         getCommand("serverinfo").setExecutor(new ServerInfoCommand(this));
