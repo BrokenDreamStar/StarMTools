@@ -27,6 +27,15 @@ fly:
   # 切换世界/重生后延迟多久恢复飞行（单位：tick，20tick = 1秒）
   restore-delay-ticks: 6
 
+# 传送功能设置
+teleport:
+  # tpa/tpahere 请求超时（秒）
+  request-timeout-seconds: 60
+  # 接受请求后传送预热时间（秒），设为 0 立即传送；期间移动或受伤害会取消
+  warmup-seconds: 3
+  # 预热期间移动超过 0.5 格是否取消传送
+  cancel-on-move: true
+
 # /plugins（及别名 /pl）命令显示设置
 # 替换服务器默认的插件列表输出，按自定义分组显示
 plugins-display:

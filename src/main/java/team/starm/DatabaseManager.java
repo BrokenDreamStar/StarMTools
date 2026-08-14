@@ -7,6 +7,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,6 +45,17 @@ public class DatabaseManager {
                     CREATE TABLE IF NOT EXISTS player_data (
                         uuid VARCHAR(36) PRIMARY KEY,
                         joined_before BOOLEAN NOT NULL DEFAULT 0
+                    )
+                """);
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS warps (
+                        name VARCHAR(32) PRIMARY KEY,
+                        world VARCHAR(255) NOT NULL,
+                        x DOUBLE NOT NULL,
+                        y DOUBLE NOT NULL,
+                        z DOUBLE NOT NULL,
+                        yaw FLOAT NOT NULL,
+                        pitch FLOAT NOT NULL
                     )
                 """);
             }
@@ -113,6 +126,51 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.WARNING, "Failed to mark joined for " + uuid, e);
         }
+    }
+
+    public void saveWarp(Warp warp) {
+        if (connection == null) return;
+        String sql = "INSERT OR REPLACE INTO warps (name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, warp.name());
+            ps.setString(2, warp.world());
+            ps.setDouble(3, warp.x());
+            ps.setDouble(4, warp.y());
+            ps.setDouble(5, warp.z());
+            ps.setFloat(6, warp.yaw());
+            ps.setFloat(7, warp.pitch());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to save warp " + warp.name(), e);
+        }
+    }
+
+    public void deleteWarp(String name) {
+        if (connection == null) return;
+        String sql = "DELETE FROM warps WHERE name = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, name);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to delete warp " + name, e);
+        }
+    }
+
+    public List<Warp> listWarps() {
+        List<Warp> warps = new ArrayList<>();
+        if (connection == null) return warps;
+        String sql = "SELECT name, world, x, y, z, yaw, pitch FROM warps ORDER BY name";
+        try (PreparedStatement ps = connection.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                warps.add(new Warp(rs.getString("name"), rs.getString("world"),
+                        rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
+                        rs.getFloat("yaw"), rs.getFloat("pitch")));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to list warps", e);
+        }
+        return warps;
     }
 
     public void removeFromCache(UUID uuid) {

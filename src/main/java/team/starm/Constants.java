@@ -7,6 +7,9 @@ public final class Constants {
     public static final String FLY_RESTORE_ON_RESPAWN = "fly.restore-on-respawn";
     public static final String FLY_RESTORE_DELAY_TICKS = "fly.restore-delay-ticks";
     public static final String FIRST_JOIN_COMMAND = "first-join-command";
+    public static final String TELEPORT_REQUEST_TIMEOUT_SECONDS = "teleport.request-timeout-seconds";
+    public static final String TELEPORT_WARMUP_SECONDS = "teleport.warmup-seconds";
+    public static final String TELEPORT_CANCEL_ON_MOVE = "teleport.cancel-on-move";
     public static final String COMMAND_PLAYER = "player";
     public static final String COMMAND_SERVER = "server";
 
