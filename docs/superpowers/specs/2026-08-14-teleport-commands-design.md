@@ -14,7 +14,7 @@
 | `/tpahere <玩家>` | 请求目标玩家传送到自己；`/tpahere accept|deny` 响应请求 |
 | `/back` | 回到死亡点（优先），无死亡点则回到上次传送前的位置 |
 | `/setwarp <名字>` | 在自己当前位置设置 warp 点位（含世界，支持跨世界） |
-| `/warp <名字>` | 传送到指定 warp；无参数时等同 `/warplist` 列出所有点位 |
+| `/warp <名字>` | 传送到指定 warp；无参数时列出所有点位 |
 | `/delwarp <名字>` | 删除指定 warp 点位 |
 
 ## 实现方案
@@ -31,7 +31,7 @@
 | `TpaCommand` | `/tpa` 及其 accept/deny 子命令，TabExecutor |
 | `TpaHereCommand` | `/tpahere` 及其 accept/deny 子命令，TabExecutor |
 | `BackCommand` | `/back`，TabExecutor |
-| `WarpCommand` | `/warp <名字>` 与 `/warplist`，TabExecutor |
+| `WarpCommand` | `/warp <名字>` 与 `/warplist`（plugin.yml 中注册为 warp 的别名；两者无参数时均列出全部点位），TabExecutor |
 | `SetWarpCommand` | `/setwarp <名字>`，TabExecutor |
 | `DelWarpCommand` | `/delwarp <名字>`，TabExecutor |
 
@@ -49,23 +49,28 @@
 
 ## 数据流
 
+### 待处理请求模型
+
+- 每个发送者每种类型（tpa / tpahere）最多一条待处理请求；重复发送覆盖旧请求并通知双方
+- 一个目标可同时收到多个不同发送者的请求
+- 预热开始后请求即被清除，此时发送者可以再发新请求
+
 ### tpa 请求生命周期
 
 ```
 A 执行 /tpa B
- → 校验（A 在线玩家、B 在线、非自己、权限、B 无待处理同类请求）
+ → 校验（A 在线玩家、B 在线、非自己、权限）
  → 写入待处理请求 {目标:B, 发送者:A, 类型:tpa, 截止时间}
  → B 收到可点击消息；调度 runTaskLater(超时) 到期自动过期并通知双方
 B 点击[接受] 或 /tpa accept A
  → 校验请求存在且未过期 → 清除请求 → 进入预热
- → 若 B 已有预热中的传送 → 提示并忽略
+ → 若被传送方（tpa 为 A）已有预热中的传送 → 提示并忽略
  → 倒计时 runTaskTimer（每秒提示剩余秒数）
- → 期间移动超过 0.5 格或受到伤害 → 取消并提示
+ → 期间被传送方移动超过 0.5 格（三维距离）或受到伤害 → 取消并提示
  → 倒计时结束：传送 A → B（跨世界自动切换）
 ```
 
-- `tpahere` 对称（接受后 B → A）
-- 发送者在预热开始前重复发送会覆盖旧请求并通知目标
+- `tpahere` 对称（接受后被传送方为 B，传送方向 B → A）
 - 超时时间可配置（默认 60 秒）
 
 ### back 生命周期（每玩家两个位置槽，内存态，不持久化）
@@ -110,7 +115,7 @@ teleport:
 | `starmtool.setwarp` | op |
 | `starmtool.delwarp` | op |
 
-`/warp` 无参数时列出点位（warplist 行为）同样要求 `starmtool.warp`。
+`/warp` 无参数时列出点位（warplist 行为）同样要求 `starmtool.warp`，无单独权限节点。
 
 ## 错误处理与消息
 
