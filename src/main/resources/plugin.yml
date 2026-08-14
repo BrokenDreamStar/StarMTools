@@ -24,6 +24,9 @@ commands:
   tpahere:
     description: "Request a player to teleport to you"
     usage: "/tpahere <player>"
+  back:
+    description: "Teleport back to death point or last location"
+    usage: "/back"
 
 permissions:
   starmtool.fly:
@@ -37,4 +40,7 @@ permissions:
     default: true
   starmtool.tpahere:
     description: "Allows use of /tpahere command"
+    default: true
+  starmtool.back:
+    description: "Allows use of /back command"
     default: true
