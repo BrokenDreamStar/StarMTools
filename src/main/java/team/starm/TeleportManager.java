@@ -93,7 +93,7 @@ public class TeleportManager implements Listener {
                 + "§a，等待对方响应（" + timeoutSeconds + " 秒内有效）。");
 
         Bukkit.getScheduler().runTaskLater(plugin,
-                () -> expireIfPending(sender.getUniqueId(), type), timeoutSeconds * 20L);
+                () -> expireIfPending(sender.getUniqueId(), type, request), timeoutSeconds * 20L);
         return true;
     }
 
@@ -130,30 +130,31 @@ public class TeleportManager implements Listener {
     public void deny(Player target, String senderName, RequestType type) {
         Player sender = Bukkit.getPlayerExact(senderName);
         Map<RequestType, TeleportRequest> byType = sender == null ? null : requests.get(sender.getUniqueId());
-        TeleportRequest request = byType == null ? null : byType.remove(type);
+        TeleportRequest request = byType == null ? null : byType.get(type);
         if (request == null || request.expireAtMillis() <= System.currentTimeMillis()
                 || !request.target().equals(target.getUniqueId())) {
             target.sendMessage("§c没有来自 §e" + senderName + " §c的待处理请求，或请求已过期。");
             return;
         }
+        byType.remove(type);
         if (byType.isEmpty()) requests.remove(sender.getUniqueId());
         if (sender != null) sender.sendMessage("§e" + target.getName() + " §c拒绝了你的传送请求。");
         target.sendMessage("§a已拒绝请求。");
     }
 
-    private void expireIfPending(UUID senderUuid, RequestType type) {
+    private void expireIfPending(UUID senderUuid, RequestType type, TeleportRequest expected) {
         Map<RequestType, TeleportRequest> byType = requests.get(senderUuid);
         if (byType == null) return;
-        TeleportRequest request = byType.remove(type);
-        if (request == null) return;
+        if (byType.get(type) != expected) return; // 请求已被覆盖或处理
+        byType.remove(type);
         if (byType.isEmpty()) requests.remove(senderUuid);
-        Player sender = Bukkit.getPlayer(request.sender());
-        Player target = Bukkit.getPlayer(request.target());
+        Player sender = Bukkit.getPlayer(expected.sender());
+        Player target = Bukkit.getPlayer(expected.target());
         if (sender != null) {
-            sender.sendMessage("§c你发送给 §e" + request.targetName() + " §c的传送请求已过期。");
+            sender.sendMessage("§c你发送给 §e" + expected.targetName() + " §c的传送请求已过期。");
         }
         if (target != null) {
-            target.sendMessage("§e" + request.senderName() + " §c的传送请求已过期。");
+            target.sendMessage("§e" + expected.senderName() + " §c的传送请求已过期。");
         }
     }
 
