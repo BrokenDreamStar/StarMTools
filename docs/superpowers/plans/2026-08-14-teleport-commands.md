@@ -472,9 +472,19 @@ public class TeleportManager implements Listener {
 
     /** 记录当前位置为"上次位置"，然后立即传送（tpa/warp/back 共用的最终一步）。 */
     public void teleportNow(Player player, Location destination) {
+        WarmupTask warmup = warmups.get(player.getUniqueId());
+        if (warmup != null) warmup.cancel("§c传送已取消：你发起了新的传送。");
         lastLocations.put(player.getUniqueId(), player.getLocation().clone());
-        player.teleportAsync(destination);
-        player.sendMessage("§a传送成功！");
+        player.teleportAsync(destination).whenComplete((ok, ex) -> {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) return;
+                if (ok != null && ok) {
+                    player.sendMessage("§a传送成功！");
+                } else {
+                    player.sendMessage("§c传送失败，请稍后再试。");
+                }
+            });
+        });
     }
 
     // ---------- warp ----------
