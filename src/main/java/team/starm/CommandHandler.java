@@ -19,9 +19,13 @@ public class CommandHandler implements TabExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             plugin.reloadConfig();
+            plugin.getMessageManager().reload();
+            // 自动补全缺失的配置项并保存
+            boolean completed = ConfigManager.completeMissing(plugin);
             RightClickListener rcl = plugin.getRightClickListener();
             if (rcl != null) rcl.resetCooldowns();
-            sender.sendMessage("§a[StarMTools] 配置文件已重载。");
+            plugin.getMessageManager().send(sender,
+                    completed ? "starmtools.reloaded-completed" : "starmtools.reloaded");
             return true;
         }
         return false;

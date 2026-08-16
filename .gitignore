@@ -6,6 +6,7 @@
 
 # Gradle
 .gradle/
+.gradle-home/
 build/
 
 # Local test server (Paper run directory)

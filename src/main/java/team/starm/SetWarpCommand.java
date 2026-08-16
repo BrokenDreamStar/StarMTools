@@ -8,14 +8,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class FlyCommand implements TabExecutor {
+public class SetWarpCommand implements TabExecutor {
 
     private final StarMTools plugin;
-    private final DatabaseManager databaseManager;
+    private final TeleportManager teleportManager;
 
-    public FlyCommand(StarMTools plugin, DatabaseManager databaseManager) {
+    public SetWarpCommand(StarMTools plugin, TeleportManager teleportManager) {
         this.plugin = plugin;
-        this.databaseManager = databaseManager;
+        this.teleportManager = teleportManager;
     }
 
     @Override
@@ -24,18 +24,15 @@ public class FlyCommand implements TabExecutor {
             plugin.getMessageManager().send(sender, "error.only-player");
             return true;
         }
-
-        if (!player.hasPermission("starmtool.fly")) {
+        if (!player.hasPermission("starmtool.setwarp")) {
             plugin.getMessageManager().send(player, "error.no-permission");
             return true;
         }
-
-        boolean flying = !player.getAllowFlight();
-        player.setAllowFlight(flying);
-        player.setFlying(flying);
-        databaseManager.setFlyState(player.getUniqueId(), flying);
-        plugin.getMessageManager().send(player, flying ? "fly.enabled" : "fly.disabled");
-
+        if (args.length != 1) {
+            plugin.getMessageManager().send(player, "warp.set-usage");
+            return true;
+        }
+        teleportManager.setWarp(player, args[0]);
         return true;
     }
 

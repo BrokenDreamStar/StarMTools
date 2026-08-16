@@ -27,6 +27,22 @@ fly:
   # 切换世界/重生后延迟多久恢复飞行（单位：tick，20tick = 1秒）
   restore-delay-ticks: 6
 
+# 传送功能设置
+teleport:
+  # tpa/tpahere 请求超时（秒）
+  request-timeout-seconds: 60
+  # 接受请求后传送预热时间（秒），设为 0 立即传送；期间移动或受伤害会取消
+  warmup-seconds: 3
+  # 预热期间是否因移动距离过大而取消传送
+  cancel-on-move: true
+  # 预热期间移动超过该距离（以格为单位，欧几里得距离）即取消传送
+  cancel-move-distance: 0.5
+
+# 家（home）功能设置
+homes:
+  # 每个玩家最多允许设置多少个家
+  max-per-player: 5
+
 # /plugins（及别名 /pl）命令显示设置
 # 替换服务器默认的插件列表输出，按自定义分组显示
 plugins-display:
@@ -44,10 +60,5 @@ plugins-display:
       - StarMTools
     "由yyy制作的为":
       - PlaceholderAPI
-  # 显示文本（支持 & 颜色代码）。占位符：{count} 插件数量
-  messages:
-    header: "&a服务器当前加载了 &e{count} &a个插件"
-    among: "&a其中"
-    others-line: "&a其它:"
-    no-permission: "&c你没有权限执行此命令。"
+# 显示文本（header/among/others-line/no-permission）已移至 message.yml 的 plugins-display.messages 下配置
 

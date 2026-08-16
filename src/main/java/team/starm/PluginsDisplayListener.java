@@ -134,20 +134,21 @@ public class PluginsDisplayListener implements Listener {
     }
 
     /** 构建悬停提示：插件名、版本、作者、网站、简介。 */
-    private static Component buildHoverText(Plugin p) {
+    private Component buildHoverText(Plugin p) {
         var desc = p.getDescription();
+        MessageManager messages = plugin.getMessageManager();
 
         var hover = Component.text()
-                .append(Component.text("名称: ", NamedTextColor.GRAY))
+                .append(Component.text(messages.get("plugins-display.hover-name"), NamedTextColor.GRAY))
                 .append(Component.text(p.getName(), NamedTextColor.WHITE))
                 .append(Component.newline())
-                .append(Component.text("版本: ", NamedTextColor.GRAY))
+                .append(Component.text(messages.get("plugins-display.hover-version"), NamedTextColor.GRAY))
                 .append(Component.text(desc.getVersion(), NamedTextColor.WHITE));
 
         if (!desc.getAuthors().isEmpty()) {
             hover = hover
                     .append(Component.newline())
-                    .append(Component.text("作者: ", NamedTextColor.GRAY))
+                    .append(Component.text(messages.get("plugins-display.hover-authors"), NamedTextColor.GRAY))
                     .append(Component.text(String.join(", ", desc.getAuthors()), NamedTextColor.WHITE));
         }
 
@@ -155,7 +156,7 @@ public class PluginsDisplayListener implements Listener {
         if (website != null && !website.isEmpty()) {
             hover = hover
                     .append(Component.newline())
-                    .append(Component.text("网站: ", NamedTextColor.GRAY))
+                    .append(Component.text(messages.get("plugins-display.hover-website"), NamedTextColor.GRAY))
                     .append(Component.text(website, NamedTextColor.AQUA));
         }
 
@@ -195,7 +196,7 @@ public class PluginsDisplayListener implements Listener {
     }
 
     private String message(String key) {
-        return plugin.getConfig().getString(Constants.PLUGINS_DISPLAY_MESSAGES_PREFIX + key, "");
+        return plugin.getMessageManager().get("plugins-display.messages." + key);
     }
 
     private static String firstLabel(String command) {

@@ -28,7 +28,7 @@ public class ServerInfoCommand implements TabExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (sender instanceof Player player && !player.hasPermission("starmtool.serverinfo")) {
-            player.sendMessage("§c你没有权限执行此命令。");
+            plugin.getMessageManager().send(player, "error.no-permission-action");
             return true;
         }
 
@@ -37,7 +37,7 @@ public class ServerInfoCommand implements TabExecutor {
             Info info = collectInfo();
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (sender instanceof Player p && !p.isOnline()) return;
-                sender.sendMessage(formatInfo(info));
+                sender.sendMessage(MessageManager.component(formatInfo(info)));
             });
         });
         return true;
@@ -54,9 +54,9 @@ public class ServerInfoCommand implements TabExecutor {
                         long worldSize, long diskTotal, long diskFree) {}
 
     private Info collectInfo() {
-        String os = System.getProperty("os.name", "未知")
+        String os = System.getProperty("os.name", unknownValue())
                 + " " + System.getProperty("os.version", "")
-                + " (" + System.getProperty("os.arch", "未知") + ")";
+                + " (" + System.getProperty("os.arch", unknownValue()) + ")";
 
         Runtime rt = Runtime.getRuntime();
         long diskTotal = 0, diskFree = 0;
@@ -73,41 +73,49 @@ public class ServerInfoCommand implements TabExecutor {
     }
 
     private String formatInfo(Info info) {
+        MessageManager mm = plugin.getMessageManager();
+        String unknown = mm.get("serverinfo.unknown-value");
+
+        String cpu = mm.get("serverinfo.cpu-detail",
+                "model=" + info.cpuModel(),
+                "process=" + formatCpuPercent(info.processCpuLoad()),
+                "system=" + formatCpuPercent(info.systemCpuLoad()));
+
         StringBuilder sb = new StringBuilder();
-        sb.append("§e========= §b服务器信息 §e=========\n");
-        sb.append("§a系统: §f").append(info.os()).append('\n');
-        sb.append("§aCPU: §f").append(info.cpuModel())
-                .append(" | 服务端 ").append(formatCpuPercent(info.processCpuLoad()))
-                .append(" | 系统 ").append(formatCpuPercent(info.systemCpuLoad())).append('\n');
+        sb.append(mm.get("serverinfo.header-title")).append('\n');
+        sb.append(mm.get("serverinfo.system", "value=" + info.os())).append('\n');
+        sb.append(mm.get("serverinfo.cpu", "value=" + cpu)).append('\n');
 
         if (info.systemTotalMemory() > 0) {
-            sb.append("§a内存: §f服务端 ").append(formatBytes(info.serverUsedMemory()))
-                    .append(" | 系统 ").append(formatBytes(info.systemUsedMemory()))
-                    .append("(").append(percent(info.systemUsedMemory(), info.systemTotalMemory())).append("%)")
-                    .append("/").append(formatBytes(info.systemTotalMemory())).append('\n');
+            sb.append(mm.get("serverinfo.memory",
+                    "server=" + formatBytes(info.serverUsedMemory()),
+                    "used=" + formatBytes(info.systemUsedMemory()),
+                    "percent=" + percent(info.systemUsedMemory(), info.systemTotalMemory()),
+                    "total=" + formatBytes(info.systemTotalMemory()))).append('\n');
         } else {
-            sb.append("§a内存: §f服务端 ").append(formatBytes(info.serverUsedMemory()))
-                    .append(" | 系统 未知/总内存 未知\n");
+            sb.append(mm.get("serverinfo.memory-unknown",
+                    "server=" + formatBytes(info.serverUsedMemory()))).append('\n');
         }
 
         long diskUsed = info.diskTotal() - info.diskFree();
+        String world = formatBytes(info.worldSize());
         if (info.diskTotal() > 0) {
-            sb.append("§a磁盘: §f存档 ").append(formatBytes(info.worldSize()))
-                    .append(" | 系统 ").append(formatBytes(diskUsed))
-                    .append("/").append(formatBytes(info.diskTotal())).append('\n');
+            sb.append(mm.get("serverinfo.disk",
+                    "world=" + world,
+                    "used=" + formatBytes(diskUsed),
+                    "total=" + formatBytes(info.diskTotal()))).append('\n');
         } else {
-            sb.append("§a磁盘: §f存档 ").append(formatBytes(info.worldSize()))
-                    .append(" | 系统 未知/总计 未知\n");
+            sb.append(mm.get("serverinfo.disk-unknown", "world=" + world)).append('\n');
         }
 
-        sb.append("§a版本: §f").append(Bukkit.getName()).append(' ').append(Bukkit.getBukkitVersion()).append('\n');
-        sb.append("§aJava: §f").append(System.getProperty("java.version", "未知")).append('\n');
-        sb.append("§e===============================");
+        sb.append(mm.get("serverinfo.version", "value=" + Bukkit.getName() + " " + Bukkit.getBukkitVersion())).append('\n');
+        sb.append(mm.get("serverinfo.java", "value=" + System.getProperty("java.version", unknown))).append('\n');
+        sb.append(mm.get("serverinfo.footer"));
         return sb.toString();
     }
 
     /** 读取 CPU 型号：Linux 解析 /proc/cpuinfo，Windows 读环境变量，macOS 用 sysctl，均失败返回"未知"。 */
-    private static String getCpuModel() {
+    private String getCpuModel() {
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         try {
             if (os.contains("win")) {
@@ -135,7 +143,7 @@ public class ServerInfoCommand implements TabExecutor {
         } catch (Exception ignored) {
             // 采集失败时返回"未知"
         }
-        return "未知";
+        return unknownValue();
     }
 
     /** 系统已用物理内存；非标准 JVM 返回 -1。 */
@@ -204,8 +212,13 @@ public class ServerInfoCommand implements TabExecutor {
         return String.format(Locale.ROOT, "%.1f", used * 100.0 / total);
     }
 
-    private static String formatCpuPercent(double load) {
-        if (load < 0) return "未知";
+    private String formatCpuPercent(double load) {
+        if (load < 0) return unknownValue();
         return String.format(Locale.ROOT, "%.1f%%", load * 100.0);
+    }
+
+    /** 从消息配置读取"未知"占位文本。 */
+    private String unknownValue() {
+        return plugin.getMessageManager().get("serverinfo.unknown-value");
     }
 }
