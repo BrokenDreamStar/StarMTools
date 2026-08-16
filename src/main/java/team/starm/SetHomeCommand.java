@@ -8,31 +8,34 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class SetWarpCommand implements TabExecutor {
+public class SetHomeCommand implements TabExecutor {
 
-    private final StarMTools plugin;
-    private final TeleportManager teleportManager;
+    private static final String DEFAULT_HOME = "home";
 
-    public SetWarpCommand(StarMTools plugin, TeleportManager teleportManager) {
-        this.plugin = plugin;
-        this.teleportManager = teleportManager;
+    private final HomeManager homeManager;
+    private final MessageManager messages;
+
+    public SetHomeCommand(HomeManager homeManager, MessageManager messages) {
+        this.homeManager = homeManager;
+        this.messages = messages;
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            plugin.getMessageManager().send(sender, "error.only-player");
+            messages.send(sender, "error.only-player");
             return true;
         }
-        if (!player.hasPermission("starmtool.setwarp")) {
-            plugin.getMessageManager().send(player, "error.no-permission");
+        if (!player.hasPermission("starmtool.sethome")) {
+            messages.send(player, "error.no-permission");
             return true;
         }
-        if (args.length != 1) {
-            plugin.getMessageManager().send(player, "warp.set-usage");
+        if (args.length > 1) {
+            messages.send(player, "home.set-usage");
             return true;
         }
-        teleportManager.setWarp(player, args[0]);
+        String name = args.length == 1 ? args[0] : DEFAULT_HOME;
+        homeManager.setHome(player, name);
         return true;
     }
 

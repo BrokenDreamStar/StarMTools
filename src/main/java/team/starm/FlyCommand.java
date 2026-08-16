@@ -21,12 +21,12 @@ public class FlyCommand implements TabExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§c只有玩家才能使用此命令。");
+            plugin.getMessageManager().send(sender, "error.only-player");
             return true;
         }
 
         if (!player.hasPermission("starmtool.fly")) {
-            player.sendMessage("§c你没有权限使用此命令。");
+            plugin.getMessageManager().send(player, "error.no-permission");
             return true;
         }
 
@@ -34,7 +34,7 @@ public class FlyCommand implements TabExecutor {
         player.setAllowFlight(flying);
         player.setFlying(flying);
         databaseManager.setFlyState(player.getUniqueId(), flying);
-        player.sendMessage(flying ? "§a已启用飞行" : "§c已关闭飞行");
+        plugin.getMessageManager().send(player, flying ? "fly.enabled" : "fly.disabled");
 
         return true;
     }

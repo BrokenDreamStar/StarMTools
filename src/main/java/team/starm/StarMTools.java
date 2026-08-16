@@ -11,20 +11,28 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.UUID;
+
 public final class StarMTools extends JavaPlugin {
 
     private DatabaseManager databaseManager;
     private RightClickListener rightClickListener;
+    private MessageManager messageManager;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        ConfigManager.completeMissing(this);
+
+        messageManager = new MessageManager(this);
 
         databaseManager = new DatabaseManager(this);
         databaseManager.init();
 
         TeleportManager teleportManager = new TeleportManager(this, databaseManager);
         getServer().getPluginManager().registerEvents(teleportManager, this);
+
+        HomeManager homeManager = new HomeManager(this, databaseManager);
 
         getCommand("starmtools").setExecutor(new CommandHandler(this));
         getCommand("fly").setExecutor(new FlyCommand(this, databaseManager));
@@ -35,6 +43,9 @@ public final class StarMTools extends JavaPlugin {
         getCommand("warp").setExecutor(new WarpCommand(this, teleportManager));
         getCommand("setwarp").setExecutor(new SetWarpCommand(this, teleportManager));
         getCommand("delwarp").setExecutor(new DelWarpCommand(this, teleportManager));
+        getCommand("sethome").setExecutor(new SetHomeCommand(homeManager, messageManager));
+        getCommand("home").setExecutor(new HomeCommand(homeManager, teleportManager, messageManager));
+        getCommand("delhome").setExecutor(new DelHomeCommand(homeManager, messageManager));
 
         rightClickListener = new RightClickListener(this);
         getServer().getPluginManager().registerEvents(rightClickListener, this);
@@ -45,7 +56,9 @@ public final class StarMTools extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new Listener() {
             @EventHandler
             public void onPlayerQuit(PlayerQuitEvent event) {
-                databaseManager.removeFromCache(event.getPlayer().getUniqueId());
+                UUID uuid = event.getPlayer().getUniqueId();
+                databaseManager.removeFromCache(uuid);
+                homeManager.removeFromCache(uuid);
             }
         }, this);
 
@@ -110,5 +123,9 @@ public final class StarMTools extends JavaPlugin {
 
     public RightClickListener getRightClickListener() {
         return rightClickListener;
+    }
+
+    public MessageManager getMessageManager() {
+        return messageManager;
     }
 }

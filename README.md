@@ -22,6 +22,9 @@
 - 📋 **自定义 `/plugins` 显示**
   - 替换原版插件列表，按配置的分组展示插件
   - 插件名按启用状态着色，支持 `&` 颜色代码
+- 🏠 **家** (`/sethome`、`/home`、`/delhome`)
+  - 每个玩家可设置多个家，数量上限可在配置中修改
+  - `/home` 无参数时传送到默认家，传名字传送到对应家
 
 ## 环境要求
 
@@ -56,10 +59,26 @@
 | `/starmtools reload` | 重载配置文件 | 无（OP） | OP |
 | `/fly` | 切换飞行模式 | `starmtool.fly` | OP |
 | `/serverinfo` | 查看服务器系统信息 | `starmtool.serverinfo` | OP |
+| `/sethome [名字]` | 在当前位置设置一个家（默认名 `home`） | `starmtool.sethome` | true |
+| `/home [名字]` | 传送到你的家（无参数传送到默认家或列出所有家） | `starmtool.home` | true |
+| `/delhome [名字]` | 删除一个家（默认删除 `home`） | `starmtool.delhome` | true |
 
 ## 配置文件
 
-首次启动后会在 `plugins/StarMTools/config.yml` 生成完整配置，可随时修改后执行 `/starmtools reload` 热重载。
+首次启动后会在 `plugins/StarMTools/config.yml` 生成完整配置，可随时修改后执行 `/starmtools reload` 热重载。若结构性配置项缺失（如 `fly.*`、`teleport.*` 等误删/漏掉），重载或启动时会自动回填其默认值（连同对应注释）并保存；`right-click-items.*` 与 `plugins-display.groups.*` 属于用户自定义内容，其中的默认示例仅为参考，**绝不会**被重新写回覆盖你的配置。
+
+### 消息文件 message.yml
+
+玩家看到的所有提示文本都在 `plugins/StarMTools/message.yml` 中（首次启动自动生成），可自定义文字与颜色。支持 `&` 颜色代码与 `{占位符}`，不同消息支持的占位符见文件内注释。修改后执行 `/starmtools reload` 生效；缺失的消息键会自动回填默认值。
+
+```yaml
+error:
+  only-player: "&c只有玩家才能使用此命令。"
+  no-permission: "&c你没有权限使用此命令。"
+teleport:
+  request-prompt: "&e{sender} &a请求{verb}，点击响应：&r  "
+  warmup-countdown: "&e传送将在 &f{seconds} &e秒后开始，请勿移动"
+```
 
 ### 右键物品执行命令
 
@@ -94,7 +113,26 @@ fly:
   restore-delay-ticks: 6          # 恢复延迟（tick，20 tick = 1 秒）
 ```
 
+### 家（home）设置
+
+```yaml
+homes:
+  max-per-player: 5   # 每个玩家最多可设置多少个家
+```
+
+### 传送功能设置
+
+```yaml
+teleport:
+  request-timeout-seconds: 60   # tpa/tpahere 请求超时（秒）
+  warmup-seconds: 3             # 传送预热时间（秒）
+  cancel-on-move: true          # 预热期间移动是否取消传送
+  cancel-move-distance: 0.5     # 预热期间移动超过该欧几里得距离（格）即取消传送
+```
+
 ### 自定义 /plugins 显示
+
+`config.yml` 中配置启用状态、权限、着色与分组：
 
 ```yaml
 plugins-display:
@@ -106,6 +144,12 @@ plugins-display:
       - StarMTools
     "由yyy制作的为":
       - PlaceholderAPI
+```
+
+显示面板的文字（表头、`其它`、无权限提示等）已移至 `message.yml` 的 `plugins-display.messages` 下配置：
+
+```yaml
+plugins-display:
   messages:
     header: "&a服务器当前加载了 &e{count} &a个插件"
     among: "&a其中"
@@ -117,7 +161,7 @@ plugins-display:
 
 ## 数据存储
 
-飞行状态与首登记录存储在 SQLite 数据库：
+飞行状态、首登记录、warp 与家(home) 均存储在 SQLite 数据库：
 
 ```
 plugins/StarMTools/starmtools.db

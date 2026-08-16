@@ -26,7 +26,7 @@ commands:
     usage: "/tpahere <player>"
   back:
     description: "Teleport back to death point or last location"
-    usage: "/back"
+    usage: "/back [confirm]"
   warp:
     description: "Teleport to a warp point"
     usage: "/warp <name>"
@@ -37,6 +37,16 @@ commands:
   delwarp:
     description: "Delete a warp point"
     usage: "/delwarp <name>"
+  sethome:
+    description: "Set a home at your current location"
+    usage: "/sethome [name]"
+  home:
+    description: "Teleport to your home"
+    usage: "/home [name]"
+    aliases: [homes]
+  delhome:
+    description: "Delete a home"
+    usage: "/delhome [name]"
 
 permissions:
   starmtool.fly:
@@ -63,3 +73,12 @@ permissions:
   starmtool.delwarp:
     description: "Allows use of /delwarp command"
     default: op
+  starmtool.sethome:
+    description: "Allows use of /sethome command"
+    default: true
+  starmtool.home:
+    description: "Allows use of /home command"
+    default: true
+  starmtool.delhome:
+    description: "Allows use of /delhome command"
+    default: true

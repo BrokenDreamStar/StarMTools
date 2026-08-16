@@ -23,37 +23,38 @@ public class WarpCommand implements TabExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§c只有玩家才能使用此命令。");
+            plugin.getMessageManager().send(sender, "error.only-player");
             return true;
         }
         if (!player.hasPermission("starmtool.warp")) {
-            player.sendMessage("§c你没有权限使用此命令。");
+            plugin.getMessageManager().send(player, "error.no-permission");
             return true;
         }
+        MessageManager mm = plugin.getMessageManager();
         if (args.length == 0) {
             List<String> names = teleportManager.warpNames();
             if (names.isEmpty()) {
-                player.sendMessage("§c还没有设置任何传送点。");
+                mm.send(player, "warp.not-set-any");
             } else {
-                player.sendMessage("§a可用传送点: §e" + String.join("§7, §e", names));
+                mm.send(player, "warp.list", "names=" + String.join("&7, &e", names));
             }
             return true;
         }
         if (args.length == 1) {
             Warp warp = teleportManager.getWarp(args[0]);
             if (warp == null) {
-                player.sendMessage("§c传送点 §e" + args[0] + " §c不存在。");
+                mm.send(player, "warp.not-exist", "name=" + args[0]);
                 return true;
             }
             Location location = warp.toLocation();
             if (location == null) {
-                player.sendMessage("§c传送点所在世界未加载。");
+                mm.send(player, "warp.world-not-loaded");
                 return true;
             }
             teleportManager.teleportNow(player, location);
             return true;
         }
-        player.sendMessage("§c用法: /warp <名字>");
+        mm.send(player, "warp.usage");
         return true;
     }
 

@@ -23,11 +23,11 @@ public class TpaCommand implements TabExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§c只有玩家才能使用此命令。");
+            plugin.getMessageManager().send(sender, "error.only-player");
             return true;
         }
         if (!player.hasPermission("starmtool.tpa")) {
-            player.sendMessage("§c你没有权限使用此命令。");
+            plugin.getMessageManager().send(player, "error.no-permission");
             return true;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("accept")) {
@@ -42,7 +42,7 @@ public class TpaCommand implements TabExecutor {
             teleportManager.sendRequest(player, args[0], TeleportManager.RequestType.TPA);
             return true;
         }
-        player.sendMessage("§c用法: /tpa <玩家> 或 /tpa accept|deny <玩家>");
+        plugin.getMessageManager().send(player, "teleport.tpa-usage");
         return true;
     }
 
@@ -50,7 +50,7 @@ public class TpaCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return List.of();
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("accept", "deny"));
+            List<String> options = new ArrayList<>();
             for (Player online : Bukkit.getOnlinePlayers()) options.add(online.getName());
             return filter(options, args[0]);
         }

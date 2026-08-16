@@ -6,11 +6,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
@@ -21,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
- * 传送功能核心：待处理请求、预热倒计时、back 位置槽、warp 缓存。
+ * 传送功能核心：待处理请求、预热倒计时、back 位置槽与虚空确认、warp 缓存。
  * 所有方法均在主线程调用。
  */
 public class TeleportManager implements Listener {
@@ -31,7 +34,9 @@ public class TeleportManager implements Listener {
     public record TeleportRequest(UUID sender, String senderName, UUID target, String targetName,
                                   RequestType type, long expireAtMillis) {}
 
-    private static final double MOVE_CANCEL_DISTANCE = 0.5;
+    /** 等待玩家输入 /back confirm 强制传送的虚空目标。 */
+    private record PendingBack(Location destination, boolean fromDeath) {}
+
     private static final Pattern WARP_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{1,32}$");
 
     private final StarMTools plugin;
@@ -42,6 +47,7 @@ public class TeleportManager implements Listener {
     private final Map<UUID, WarmupTask> warmups = new ConcurrentHashMap<>();
     private final Map<UUID, Location> deathLocations = new ConcurrentHashMap<>();
     private final Map<UUID, Location> lastLocations = new ConcurrentHashMap<>();
+    private final Map<UUID, PendingBack> pendingBacks = new ConcurrentHashMap<>();
     private final Map<String, Warp> warps = new ConcurrentHashMap<>();
 
     public TeleportManager(StarMTools plugin, DatabaseManager databaseManager) {
@@ -52,16 +58,20 @@ public class TeleportManager implements Listener {
         }
     }
 
+    private MessageManager messages() {
+        return plugin.getMessageManager();
+    }
+
     // ---------- tpa / tpahere ----------
 
     public boolean sendRequest(Player sender, String targetName, RequestType type) {
         Player target = Bukkit.getPlayerExact(targetName);
         if (target == null) {
-            sender.sendMessage("§c玩家不存在或不在线。");
+            messages().send(sender, "teleport.player-not-found");
             return false;
         }
         if (target.equals(sender)) {
-            sender.sendMessage("§c不能向自己发送传送请求。");
+            messages().send(sender, "teleport.cannot-self");
             return false;
         }
 
@@ -71,7 +81,7 @@ public class TeleportManager implements Listener {
         if (old != null && old.expireAtMillis() > System.currentTimeMillis()) {
             Player oldTarget = Bukkit.getPlayer(old.target());
             if (oldTarget != null && !oldTarget.equals(target)) {
-                oldTarget.sendMessage("§e" + sender.getName() + " §c撤销了之前的传送请求。");
+                messages().send(oldTarget, "teleport.revoked-previous", "player=" + sender.getName());
             }
         }
 
@@ -81,16 +91,19 @@ public class TeleportManager implements Listener {
                 System.currentTimeMillis() + timeoutSeconds * 1000L);
         byType.put(type, request);
 
-        String verb = type == RequestType.TPA ? "传送到你身边" : "把你传送过去";
+        String verb = messages().get(type == RequestType.TPA ? "teleport.verb-to" : "teleport.verb-here");
         String cmd = type == RequestType.TPA ? "tpa" : "tpahere";
-        Component accept = Component.text("§a§l[接受]")
+        String acceptText = messages().get("teleport.request-accept-button");
+        String denyText = messages().get("teleport.request-deny-button");
+        Component accept = MessageManager.component(acceptText)
                 .clickEvent(ClickEvent.runCommand("/" + cmd + " accept " + sender.getName()));
-        Component deny = Component.text("§c§l[拒绝]")
+        Component deny = MessageManager.component(denyText)
                 .clickEvent(ClickEvent.runCommand("/" + cmd + " deny " + sender.getName()));
-        target.sendMessage(Component.text("§e" + sender.getName() + " §a请求" + verb + "，点击响应：§r  ")
+        target.sendMessage(messages().component("teleport.request-prompt",
+                "sender=" + sender.getName(), "verb=" + verb)
                 .append(accept).append(Component.text("  ")).append(deny));
-        sender.sendMessage("§a请求已发送给 §e" + target.getName()
-                + "§a，等待对方响应（" + timeoutSeconds + " 秒内有效）。");
+        messages().send(sender, "teleport.request-sent",
+                "target=" + target.getName(), "timeout=" + timeoutSeconds);
 
         Bukkit.getScheduler().runTaskLater(plugin,
                 () -> expireIfPending(sender.getUniqueId(), type, request), timeoutSeconds * 20L);
@@ -100,25 +113,29 @@ public class TeleportManager implements Listener {
     public void accept(Player target, String senderName, RequestType type) {
         Player sender = Bukkit.getPlayerExact(senderName);
         if (sender == null) {
-            target.sendMessage("§c该玩家不存在或不在线。");
+            messages().send(target, "teleport.target-not-found");
             return;
         }
         Map<RequestType, TeleportRequest> byType = requests.get(sender.getUniqueId());
         TeleportRequest request = byType == null ? null : byType.get(type);
         if (request == null || request.expireAtMillis() <= System.currentTimeMillis()
                 || !request.target().equals(target.getUniqueId())) {
-            target.sendMessage("§c没有来自 §e" + senderName + " §c的待处理请求，或请求已过期。");
+            messages().send(target, "teleport.no-pending-request", "player=" + senderName);
             return;
         }
 
         Player moving = type == RequestType.TPA ? sender : target;
         if (warmups.containsKey(moving.getUniqueId())) {
-            target.sendMessage("§c该玩家已有进行中的传送，请稍后再试。");
+            messages().send(target, "teleport.already-warming");
             return;
         }
 
         byType.remove(type);
         if (byType.isEmpty()) requests.remove(sender.getUniqueId());
+
+        // 通知双方：请求发送者收到"对方已接受"，接受方收到自己的确认提示
+        messages().send(sender, "teleport.request-accepted", "target=" + target.getName());
+        messages().send(target, "teleport.accept-confirmed", "sender=" + sender.getName());
 
         Location destination = type == RequestType.TPA ? target.getLocation() : sender.getLocation();
         Player other = type == RequestType.TPA ? target : sender;
@@ -133,13 +150,14 @@ public class TeleportManager implements Listener {
         TeleportRequest request = byType == null ? null : byType.get(type);
         if (request == null || request.expireAtMillis() <= System.currentTimeMillis()
                 || !request.target().equals(target.getUniqueId())) {
-            target.sendMessage("§c没有来自 §e" + senderName + " §c的待处理请求，或请求已过期。");
+            messages().send(target, "teleport.no-pending-request", "player=" + senderName);
             return;
         }
         byType.remove(type);
         if (byType.isEmpty()) requests.remove(sender.getUniqueId());
-        if (sender != null) sender.sendMessage("§e" + target.getName() + " §c拒绝了你的传送请求。");
-        target.sendMessage("§a已拒绝请求。");
+        // 通知双方：请求发送者收到"对方已拒绝"，拒绝方收到自己的确认提示
+        messages().send(sender, "teleport.target-denied", "target=" + target.getName());
+        messages().send(target, "teleport.request-denied", "sender=" + sender.getName());
     }
 
     private void expireIfPending(UUID senderUuid, RequestType type, TeleportRequest expected) {
@@ -151,10 +169,10 @@ public class TeleportManager implements Listener {
         Player sender = Bukkit.getPlayer(expected.sender());
         Player target = Bukkit.getPlayer(expected.target());
         if (sender != null) {
-            sender.sendMessage("§c你发送给 §e" + expected.targetName() + " §c的传送请求已过期。");
+            messages().send(sender, "teleport.sender-request-expired", "target=" + expected.targetName());
         }
         if (target != null) {
-            target.sendMessage("§e" + expected.senderName() + " §c的传送请求已过期。");
+            messages().send(target, "teleport.target-request-expired", "sender=" + expected.senderName());
         }
     }
 
@@ -198,7 +216,7 @@ public class TeleportManager implements Listener {
                 finish();
                 return;
             }
-            player.sendMessage("§e传送将在 §f" + remaining + " §e秒后开始，请勿移动");
+            showTimer();
             task = Bukkit.getScheduler().runTaskTimer(plugin, this, 20L, 20L);
         }
 
@@ -208,8 +226,13 @@ public class TeleportManager implements Listener {
             if (remaining <= 0) {
                 finish();
             } else {
-                player.sendMessage("§e传送将在 §f" + remaining + " §e秒后开始，请勿移动");
+                showTimer();
             }
+        }
+
+        /** 在动作栏显示当前剩余秒数。 */
+        private void showTimer() {
+            player.sendActionBar(messages().component("teleport.warmup-countdown", "seconds=" + remaining));
         }
 
         private void finish() {
@@ -223,27 +246,68 @@ public class TeleportManager implements Listener {
             if (task != null) task.cancel();
         }
 
-        void cancel(String reason) {
+        void cancel(String legacyReason) {
             cancelTask();
-            if (player.isOnline()) player.sendMessage(reason);
+            if (player.isOnline()) {
+                player.sendActionBar(Component.empty()); // 清除残留倒计时
+                player.sendMessage(MessageManager.component(legacyReason));
+            }
             if (other != null && other.isOnline()) {
-                other.sendMessage("§e" + player.getName() + " §c的传送已取消。");
+                messages().send(other, "teleport.cancel-by-other", "player=" + player.getName());
             }
         }
     }
 
     // ---------- back ----------
 
-    /** /back：优先死亡点（一次性），否则上次插件传送前的位置。 */
-    public void goBack(Player player) {
+    /** /back：优先死亡点（一次性），否则上次插件传送前的位置。目标位于虚空时需 /back confirm 确认。 */
+    public void goBack(Player player, boolean confirmed) {
         UUID uuid = player.getUniqueId();
-        Location death = deathLocations.remove(uuid);
-        Location destination = death != null ? death : lastLocations.get(uuid);
-        if (destination == null) {
-            player.sendMessage("§c没有可返回的位置。");
+        if (confirmed) {
+            confirmUnsafeBack(player);
             return;
         }
+
+        Location death = deathLocations.get(uuid);
+        Location destination = death != null ? death : lastLocations.get(uuid);
+        if (destination == null) {
+            messages().send(player, "teleport.back-no-location");
+            return;
+        }
+        if (isInVoid(destination)) {
+            pendingBacks.put(uuid, new PendingBack(destination.clone(), death != null));
+            messages().send(player, "teleport.back-unsafe");
+            return;
+        }
+
+        // 只有真正执行传送时才消耗死亡点，避免"提示不安全"后死亡点被白白清掉
+        if (death != null) {
+            deathLocations.remove(uuid);
+        }
+        pendingBacks.remove(uuid);
         teleportNow(player, destination);
+    }
+
+    /** /back confirm：对刚提示过的虚空目标执行强制传送。 */
+    private void confirmUnsafeBack(Player player) {
+        UUID uuid = player.getUniqueId();
+        PendingBack pending = pendingBacks.remove(uuid);
+        if (pending == null) {
+            messages().send(player, "teleport.back-confirm-no-pending");
+            return;
+        }
+        if (pending.fromDeath()) {
+            deathLocations.remove(uuid);
+        }
+        teleportNow(player, pending.destination());
+    }
+
+    /** 目标世界未加载或 Y 不高于世界最低高度时视为虚空。 */
+    private boolean isInVoid(Location destination) {
+        if (destination == null || destination.getWorld() == null) {
+            return true;
+        }
+        return destination.getY() <= destination.getWorld().getMinHeight();
     }
 
     // ---------- 通用传送 ----------
@@ -251,15 +315,17 @@ public class TeleportManager implements Listener {
     /** 记录当前位置为"上次位置"，然后立即传送（tpa/warp/back 共用的最终一步）。 */
     public void teleportNow(Player player, Location destination) {
         WarmupTask warmup = warmups.get(player.getUniqueId());
-        if (warmup != null) warmup.cancel("§c传送已取消：你发起了新的传送。");
+        if (warmup != null) {
+            warmup.cancel(messages().get("teleport.cancelled-new-teleport"));
+        }
         lastLocations.put(player.getUniqueId(), player.getLocation().clone());
         player.teleportAsync(destination).whenComplete((ok, ex) -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!player.isOnline()) return;
                 if (ok != null && ok) {
-                    player.sendMessage("§a传送成功！");
+                    messages().send(player, "teleport.success");
                 } else {
-                    player.sendMessage("§c传送失败，请稍后再试。");
+                    messages().send(player, "teleport.fail");
                 }
             });
         });
@@ -273,11 +339,11 @@ public class TeleportManager implements Listener {
 
     public boolean setWarp(Player player, String name) {
         if (!WARP_NAME_PATTERN.matcher(name).matches()) {
-            player.sendMessage("§c传送点名称只能包含字母、数字、下划线和短横线（1-32 字符）。");
+            messages().send(player, "warp.name-invalid");
             return false;
         }
         if (warps.containsKey(name)) {
-            player.sendMessage("§c已存在同名传送点 §e" + name + "§c。");
+            messages().send(player, "warp.already-exists", "name=" + name);
             return false;
         }
         Location loc = player.getLocation();
@@ -285,17 +351,17 @@ public class TeleportManager implements Listener {
                 loc.getYaw(), loc.getPitch());
         databaseManager.saveWarp(warp);
         warps.put(name, warp);
-        player.sendMessage("§a已设置传送点 §e" + name + "§a。");
+        messages().send(player, "warp.set", "name=" + name);
         return true;
     }
 
     public boolean delWarp(Player player, String name) {
         if (warps.remove(name) == null) {
-            player.sendMessage("§c传送点 §e" + name + " §c不存在。");
+            messages().send(player, "warp.delete-not-exist", "name=" + name);
             return false;
         }
         databaseManager.deleteWarp(name);
-        player.sendMessage("§a已删除传送点 §e" + name + "§a。");
+        messages().send(player, "warp.deleted", "name=" + name);
         return true;
     }
 
@@ -304,6 +370,19 @@ public class TeleportManager implements Listener {
     }
 
     // ---------- 事件 ----------
+
+    /**
+     * 记录其它插件（例如 StarMSkyblock 的 /is、/is spawn）触发的传送，
+     * 使 /back 也能返回这些传送前的位置。
+     * 使用 MONITOR + ignoreCancelled 仅记录实际发生的插件传送。
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerTeleport(PlayerTeleportEvent event) {
+        if (event.getCause() != TeleportCause.PLUGIN) return;
+        Location from = event.getFrom();
+        if (from.getWorld() == null) return;
+        lastLocations.put(event.getPlayer().getUniqueId(), from.clone());
+    }
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
@@ -315,8 +394,10 @@ public class TeleportManager implements Listener {
         if (from.getX() == to.getX() && from.getY() == to.getY() && from.getZ() == to.getZ()) {
             return; // 仅视角转动
         }
-        if (from.distanceSquared(warmup.startLocation) > MOVE_CANCEL_DISTANCE * MOVE_CANCEL_DISTANCE) {
-            warmup.cancel("§c传送已取消：移动距离过大。");
+        double cancelDistance = plugin.getConfig().getDouble(
+                Constants.TELEPORT_CANCEL_MOVE_DISTANCE, 0.5);
+        if (from.distanceSquared(warmup.startLocation) > cancelDistance * cancelDistance) {
+            warmup.cancel(messages().get("teleport.cancel-move"));
         }
     }
 
@@ -325,18 +406,19 @@ public class TeleportManager implements Listener {
         if (!(event.getEntity() instanceof Player player)) return;
         WarmupTask warmup = warmups.get(player.getUniqueId());
         if (warmup == null) return;
-        warmup.cancel("§c传送已取消：你受到了伤害。");
+        warmup.cancel(messages().get("teleport.cancel-damage"));
     }
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         UUID uuid = event.getEntity().getUniqueId();
         deathLocations.put(uuid, event.getEntity().getLocation().clone());
+        pendingBacks.remove(uuid); // 新死亡点会取代旧的待确认返回目标
         WarmupTask warmup = warmups.remove(uuid);
         if (warmup != null) {
             warmup.cancelTask();
             if (warmup.other != null && warmup.other.isOnline()) {
-                warmup.other.sendMessage("§e" + event.getEntity().getName() + " §c死亡，传送已取消。");
+                messages().send(warmup.other, "teleport.cancel-death", "player=" + event.getEntity().getName());
             }
         }
     }
@@ -351,7 +433,7 @@ public class TeleportManager implements Listener {
             for (TeleportRequest request : byType.values()) {
                 Player target = Bukkit.getPlayer(request.target());
                 if (target != null) {
-                    target.sendMessage("§e" + request.senderName() + " §c已离线，其传送请求失效。");
+                    messages().send(target, "teleport.quit-invalidates", "player=" + request.senderName());
                 }
             }
         }
@@ -360,7 +442,7 @@ public class TeleportManager implements Listener {
                 if (!entry.getValue().target().equals(uuid)) return false;
                 Player sender = Bukkit.getPlayer(entry.getValue().sender());
                 if (sender != null) {
-                    sender.sendMessage("§e" + player.getName() + " §c已离线，你的传送请求失效。");
+                    messages().send(sender, "teleport.quit-invalidates-yours", "player=" + player.getName());
                 }
                 return true;
             });
@@ -372,5 +454,6 @@ public class TeleportManager implements Listener {
 
         deathLocations.remove(uuid);
         lastLocations.remove(uuid);
+        pendingBacks.remove(uuid);
     }
 }

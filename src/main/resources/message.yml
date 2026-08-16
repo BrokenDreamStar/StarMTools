@@ -1,0 +1,129 @@
+# ============ StarMTools 消息配置 ============
+# 所有插件输出的玩家提示文本都在这里集中配置。
+# 支持 & 颜色代码与 {占位符}（不同消息支持的占位符见下方注释）。
+# 修改后执行 /starmtools reload 生效。缺失的键会自动回填默认值。
+
+# 通用错误提示
+error:
+  only-player: '&c只有玩家才能使用此命令。'
+  no-permission: '&c你没有权限使用此命令。'
+  no-permission-action: '&c你没有权限执行此命令。'
+
+# 主命令 /starmtools
+starmtools:
+  reloaded: '&a[StarMTools] 配置文件已重载。'
+  reloaded-completed: '&a[StarMTools] 配置文件已重载，并补全了缺失的配置项。'
+
+# 飞行 /fly
+fly:
+  enabled: '&a已启用飞行'
+  disabled: '&c已关闭飞行'
+
+# 传送相关（tpa / tpahere / back）
+teleport:
+  # 发送请求时目标收到的提示，可点击 [接受] / [拒绝]
+  # 占位符: {sender}=发送者, {verb}=请求动词(见下方 verb-*)
+  request-prompt: '&e{sender} &a请求{verb}'
+  request-accept-button: '&a&l[接受]'
+  request-deny-button: '&c&l[拒绝]'
+  # 请求动词（TPA = 传送到你身边；TPAHERE = 把你传送过去）
+  verb-to: 传送到你身边
+  verb-here: 把你传送过去
+  # 发送者自己的反馈，占位符: {target}=目标, {timeout}=超时秒数
+  request-sent: '&a请求已发送给 &e{target}&a，等待对方响应'
+  player-not-found: '&c玩家不存在或不在线。'
+  # 目标玩家离线（接受请求时）
+  target-not-found: '&c该玩家不存在或不在线。'
+  cannot-self: '&c不能向自己发送传送请求。'
+  # 目标玩家拒绝/过期/离线等
+  revoked-previous: '&e{player} &c撤销了之前的传送请求。'
+  no-pending-request: '&c没有来自 &e{player} &c的待处理请求，或请求已过期。'
+  already-warming: '&c该玩家已有进行中的传送，请稍后再试。'
+  target-denied: '&e{target} &c拒绝了你的传送请求。'
+  request-denied: '&a已拒绝请求。'
+  sender-request-expired: '&c你发送给 &e{target} &c的传送请求已过期。'
+  target-request-expired: '&e{sender} &c的传送请求已过期。'
+  quit-invalidates: '&e{player} &c已离线，其传送请求失效。'
+  quit-invalidates-yours: '&e{player} &c已离线，你的传送请求失效。'
+  # 传送预热
+  # 占位符: {seconds}=剩余秒数（动作栏显示）
+  warmup-countdown: '&e传送将在 &f{seconds} &e秒后开始，请勿移动'
+  cancelled-new-teleport: '&c传送已取消：你发起了新的传送。'
+  cancel-move: '&c传送已取消：移动。'
+  cancel-damage: '&c传送已取消：你受到了伤害。'
+  cancel-death: '&e{player} &c死亡，传送已取消。'
+  cancel-by-other: '&e{player} &c的传送已取消。'
+  # 传送成功/失败
+  success: '&a传送成功！'
+  fail: '&c传送失败，请稍后再试。'
+  # back
+  back-no-location: '&c没有可返回的位置。'
+  tpa-usage: '&c用法: /tpa <玩家>'
+  tpahere-usage: '&c用法: /tpahere <玩家>'
+  back-usage: '&c用法: /back'
+  back-unsafe: '&c返回目标位于虚空！确认强制传送请执行 &e/back confirm&c。'
+  back-confirm-no-pending: '&c没有待确认的不安全返回位置，请先使用 &e/back &c查看。'
+  request-accepted: '&e{target} &a已接受你的传送请求'
+  accept-confirmed: '&a你已接受 &e{sender} &a的传送请求'
+
+# 传送点 /warp
+warp:
+  usage: '&c用法: /warp <名字>'
+  set-usage: '&c用法: /setwarp <名字>'
+  del-usage: '&c用法: /delwarp <名字>'
+  not-set-any: '&c还没有设置任何传送点。'
+  # 占位符: {names}=逗号分隔的点名列表，{name}=单个点名
+  list: '&a可用传送点: &e{names}'
+  not-exist: '&c传送点 &e{name} &c不存在。'
+  world-not-loaded: '&c所在世界未加载。'
+  name-invalid: '&c传送点名称只能包含字母、数字、下划线和短横线（1-32 字符）。'
+  already-exists: '&c已存在同名传送点 &e{name}&c。'
+  set: '&a已设置传送点 &e{name}&a。'
+  deleted: '&a已删除传送点 &e{name}&a。'
+  delete-not-exist: '&c传送点 &e{name} &c不存在。'
+
+# 家 /home /sethome /delhome
+home:
+  usage: '&c用法: /home [名字]'
+  set-usage: '&c用法: /sethome [名字]'
+  del-usage: '&c用法: /delhome [名字]'
+  none: '&c你还没有设置任何家，使用 &e/sethome&c 设置一个。'
+  # 占位符: {names}=逗号分隔的家名列表，{name}=单个家名
+  list: '&a你家: &e{names}'
+  not-exist: '&c家 &e{name} &c不存在。'
+  world-not-loaded: '&c家所在世界未加载。'
+  name-invalid: '&c家名称只能包含字母、数字、下划线和短横线（1-32 字符）。'
+  # 占位符: {max}=上限数量
+  max-reached: '&c最多只能设置 &e{max} &c个家，请先用 &e/delhome&c 删除多余的家。'
+  set: '&a已设置家 &e{name}&a。'
+  deleted: '&a已删除家 &e{name}&a。'
+  delete-not-exist: '&c家 &e{name} &c不存在。'
+
+# 服务器信息 /serverinfo
+serverinfo:
+  header-title: '&e========= &b服务器信息 &e========='
+  system: '&a系统: &f{value}'
+  cpu: '&aCPU: &f{value}'
+  memory: '&a内存: &f服务端 {server} | 系统 {used}({percent}%)/{total}'
+  memory-unknown: '&a内存: &f服务端 {server} | 系统 未知/总内存 未知'
+  disk: '&a磁盘: &f存档 {world} | 系统 {used}/{total}'
+  disk-unknown: '&a磁盘: &f存档 {world} | 系统 未知/总计 未知'
+  version: '&a版本: &f{value}'
+  java: '&aJava: &f{value}'
+  footer: '&e==============================='
+  # 采集不到 CPU / 内存时显示
+  unknown-value: 未知
+  # CPU 占用率占位符值，如 "12.3%"，{process}=服务端, {system}=系统整体
+  cpu-detail: '{model} | 服务端 {process} | 系统 {system}'
+
+# 自定义 /plugins 显示中鼠标悬停插件名时的详情标签
+plugins-display:
+  hover-name: '名称: '
+  hover-version: '版本: '
+  hover-authors: '作者: '
+  hover-website: '网站: '
+  messages:
+    header: '&a服务器当前加载了 &e{count} &a个插件'
+    among: '&a其中'
+    others-line: '&a其它:'
+    no-permission: '&c你没有权限执行此命令。'

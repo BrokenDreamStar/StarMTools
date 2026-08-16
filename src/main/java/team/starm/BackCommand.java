@@ -21,19 +21,30 @@ public class BackCommand implements TabExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§c只有玩家才能使用此命令。");
+            plugin.getMessageManager().send(sender, "error.only-player");
             return true;
         }
         if (!player.hasPermission("starmtool.back")) {
-            player.sendMessage("§c你没有权限使用此命令。");
+            plugin.getMessageManager().send(player, "error.no-permission");
             return true;
         }
-        teleportManager.goBack(player);
+        if (args.length == 0) {
+            teleportManager.goBack(player, false);
+            return true;
+        }
+        if (args.length == 1 && args[0].equalsIgnoreCase("confirm")) {
+            teleportManager.goBack(player, true);
+            return true;
+        }
+        plugin.getMessageManager().send(player, "teleport.back-usage");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (args.length == 1 && "confirm".startsWith(args[0].toLowerCase())) {
+            return List.of("confirm");
+        }
         return List.of();
     }
 }
