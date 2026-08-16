@@ -30,6 +30,7 @@
 - `/serverinfo` 输出文本迁移到 `message.yml`。
 - `/back` 用法更新为 `/back [confirm]`。
 - 默认 `message.yml` 采用 StarMSkyblock 服务器现网配置。
+- 发布 jar 内现在会附带本更新日志（jar 根目录下的 `CHANGELOG.md`）。
 - 版本号由 `1.0.1` 升级为 `1.0.2`。
 
 ### 修复
