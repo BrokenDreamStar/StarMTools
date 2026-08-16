@@ -32,6 +32,9 @@ public final class StarMTools extends JavaPlugin {
         getCommand("tpa").setExecutor(new TpaCommand(this, teleportManager));
         getCommand("tpahere").setExecutor(new TpaHereCommand(this, teleportManager));
         getCommand("back").setExecutor(new BackCommand(this, teleportManager));
+        getCommand("warp").setExecutor(new WarpCommand(this, teleportManager));
+        getCommand("setwarp").setExecutor(new SetWarpCommand(this, teleportManager));
+        getCommand("delwarp").setExecutor(new DelWarpCommand(this, teleportManager));
 
         rightClickListener = new RightClickListener(this);
         getServer().getPluginManager().registerEvents(rightClickListener, this);

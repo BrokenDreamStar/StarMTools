@@ -27,6 +27,16 @@ commands:
   back:
     description: "Teleport back to death point or last location"
     usage: "/back"
+  warp:
+    description: "Teleport to a warp point"
+    usage: "/warp <name>"
+    aliases: [warplist]
+  setwarp:
+    description: "Set a warp point at your location"
+    usage: "/setwarp <name>"
+  delwarp:
+    description: "Delete a warp point"
+    usage: "/delwarp <name>"
 
 permissions:
   starmtool.fly:
@@ -44,3 +54,12 @@ permissions:
   starmtool.back:
     description: "Allows use of /back command"
     default: true
+  starmtool.warp:
+    description: "Allows use of /warp command"
+    default: true
+  starmtool.setwarp:
+    description: "Allows use of /setwarp command"
+    default: op
+  starmtool.delwarp:
+    description: "Allows use of /delwarp command"
+    default: op
