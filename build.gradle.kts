@@ -27,6 +27,8 @@ tasks {
 
     jar {
         archiveFileName = "${rootProject.name}-${project.version}.jar"
+        // 将仓库根目录的更新日志一并打进发布 jar，方便使用者在 jar 内直接查看
+        from(rootProject.file("CHANGELOG.md"))
     }
 
     processResources {
